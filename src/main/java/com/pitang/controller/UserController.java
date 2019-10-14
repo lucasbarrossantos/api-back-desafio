@@ -30,101 +30,99 @@ import java.util.*;
 @RequestMapping("/users")
 public class UserController extends ErrorsGeneric {
 
-    private final UserRepository userRepository;
-    private final UserService userService;
-    private final MessageSource messageSource;
-    private final ApplicationEventPublisher publisher;
-    private final ModelMapper userMapper;
+	private final UserRepository userRepository;
+	private final UserService userService;
+	private final MessageSource messageSource;
+	private final ApplicationEventPublisher publisher;
+	private final ModelMapper userMapper;
 
-    @Autowired
-    public UserController(UserRepository userRepository,
-                          UserService userService,
-                          MessageSource messageSource,
-                          ApplicationEventPublisher publisher,
-                          ModelMapper userMapper) {
-        this.userRepository = userRepository;
-        this.userService = userService;
-        this.messageSource = messageSource;
-        this.publisher = publisher;
-        this.userMapper = userMapper;
-    }
+	@Autowired
+	public UserController(UserRepository userRepository, UserService userService, MessageSource messageSource,
+			ApplicationEventPublisher publisher, ModelMapper userMapper) {
+		this.userRepository = userRepository;
+		this.userService = userService;
+		this.messageSource = messageSource;
+		this.publisher = publisher;
+		this.userMapper = userMapper;
+	}
 
-    @GetMapping
-    public Page<UserDTO> getAll(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(user -> userMapper.map(user, UserDTO.class));
-    }
+	@GetMapping
+	public Page<UserDTO> getAll(Pageable pageable) {
+		return userRepository.findAll(pageable).map(user -> userMapper.map(user, UserDTO.class));
+	}
 
-    @PostMapping
-    public ResponseEntity<?> save(@Valid @RequestBody User user,
-                                  BindingResult result, HttpServletResponse response) {
+	@GetMapping(params = "firstName")
+	public Page<UserDTO> findAllByModel(@RequestParam(required = false, defaultValue = "%") String firstName,
+			Pageable pageable) {
+		return userRepository.findAllByFirstNameContainingIgnoreCase(firstName, pageable)
+				.map(user -> userMapper.map(user, UserDTO.class));
+	}
 
-        if (result.hasErrors()) {
-            List<CustomExceptionHandler.Error> errors = new ArrayList<>();
-            result.getAllErrors().forEach(error -> errors.add(new CustomExceptionHandler
-                    .Error(error.getDefaultMessage(), "5")));
-            return ResponseEntity.badRequest().body(errors);
-        }
+	@PostMapping
+	public ResponseEntity<?> save(@Valid @RequestBody User user, BindingResult result, HttpServletResponse response) {
 
-        User userSaved = userService.save(user);
-        publisher.publishEvent(new RecursoCriadoEvent(this, response, userSaved.getId()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(userSaved);
-    }
+		if (result.hasErrors()) {
+			List<CustomExceptionHandler.Error> errors = new ArrayList<>();
+			result.getAllErrors()
+					.forEach(error -> errors.add(new CustomExceptionHandler.Error(error.getDefaultMessage(), "5")));
+			return ResponseEntity.badRequest().body(errors);
+		}
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") UUID id,
-                                    @Valid @RequestBody User user,
-                                    BindingResult result) {
-        if (result.hasErrors()) {
-            return ResponseEntity.badRequest()
-                    .body(new ErrorsGeneric().errorFieldsNull(result));
-        }
-        return ResponseEntity.ok(userService.update(id, user));
-    }
+		User userSaved = userService.save(user);
+		publisher.publishEvent(new RecursoCriadoEvent(this, response, userSaved.getId()));
+		return ResponseEntity.status(HttpStatus.CREATED).body(userSaved);
+	}
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable("id") UUID id) {
-        userService.delete(id);
-    }
+	@PutMapping("/{id}")
+	public ResponseEntity<?> update(@PathVariable("id") UUID id, @Valid @RequestBody User user, BindingResult result) {
+		if (result.hasErrors()) {
+			return ResponseEntity.badRequest().body(new ErrorsGeneric().errorFieldsNull(result));
+		}
+		return ResponseEntity.ok(userService.update(id, user));
+	}
 
-    @GetMapping("/{id}")
-    public ResponseEntity<User> findById(@PathVariable("id") UUID id) {
-        Optional<User> user = userRepository.findById(id);
-        if (user.isPresent()) return ResponseEntity.ok().body(user.get());
-        else return ResponseEntity.notFound().build();
-    }
+	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void delete(@PathVariable("id") UUID id) {
+		userService.delete(id);
+	}
 
-    // ExceptionHandlers
+	@GetMapping("/{id}")
+	public ResponseEntity<User> findById(@PathVariable("id") UUID id) {
+		Optional<User> user = userRepository.findById(id);
+		if (user.isPresent())
+			return ResponseEntity.ok().body(user.get());
+		else
+			return ResponseEntity.notFound().build();
+	}
 
-    @ExceptionHandler({EmailDuplicateException.class})
-    public ResponseEntity<Object> handleEmailDuplicateException() {
-        String customMessageUser = messageSource.getMessage("validation.user-email-duplicate",
-                null, LocaleContextHolder.getLocale());
-        List<CustomExceptionHandler.Error> errors =
-                Collections.singletonList(new CustomExceptionHandler
-                        .Error(customMessageUser, "2"));
-        return ResponseEntity.badRequest().body(errors);
-    }
+	// ExceptionHandlers
 
-    @ExceptionHandler({LoginDuplicateException.class})
-    public ResponseEntity<Object> handleLoginDuplicateException() {
-        String customMessageUser = messageSource.getMessage("validation.user-login-duplicate",
-                null, LocaleContextHolder.getLocale());
-        List<CustomExceptionHandler.Error> errors =
-                Collections.singletonList(new CustomExceptionHandler
-                        .Error(customMessageUser, "3"));
-        return ResponseEntity.badRequest().body(errors);
-    }
+	@ExceptionHandler({ EmailDuplicateException.class })
+	public ResponseEntity<Object> handleEmailDuplicateException() {
+		String customMessageUser = messageSource.getMessage("validation.user-email-duplicate", null,
+				LocaleContextHolder.getLocale());
+		List<CustomExceptionHandler.Error> errors = Collections
+				.singletonList(new CustomExceptionHandler.Error(customMessageUser, "2"));
+		return ResponseEntity.badRequest().body(errors);
+	}
 
-    @ExceptionHandler({CarWithLicensePlateDuplicated.class})
-    public ResponseEntity<Object> handleCarWithLicensePlateDuplicated() {
-        String customMessageUser = messageSource.getMessage("validation.car-license-plate-in-use",
-                null, LocaleContextHolder.getLocale());
-        List<CustomExceptionHandler.Error> errors =
-                Collections.singletonList(new CustomExceptionHandler
-                        .Error(customMessageUser, "3"));
-        return ResponseEntity.badRequest().body(errors);
-    }
+	@ExceptionHandler({ LoginDuplicateException.class })
+	public ResponseEntity<Object> handleLoginDuplicateException() {
+		String customMessageUser = messageSource.getMessage("validation.user-login-duplicate", null,
+				LocaleContextHolder.getLocale());
+		List<CustomExceptionHandler.Error> errors = Collections
+				.singletonList(new CustomExceptionHandler.Error(customMessageUser, "3"));
+		return ResponseEntity.badRequest().body(errors);
+	}
+
+	@ExceptionHandler({ CarWithLicensePlateDuplicated.class })
+	public ResponseEntity<Object> handleCarWithLicensePlateDuplicated() {
+		String customMessageUser = messageSource.getMessage("validation.car-license-plate-in-use", null,
+				LocaleContextHolder.getLocale());
+		List<CustomExceptionHandler.Error> errors = Collections
+				.singletonList(new CustomExceptionHandler.Error(customMessageUser, "3"));
+		return ResponseEntity.badRequest().body(errors);
+	}
 
 }
