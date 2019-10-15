@@ -38,6 +38,7 @@ public class UserService {
 		user.setCars(new ArrayList<>());
 		user = userRepository.save(user);
 		saveListCars(user, cars);
+		user.setCars(cars);
 		return user;
 	}
 

@@ -9,6 +9,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
@@ -34,6 +35,7 @@ import com.pitang.controller.errors.ErrorsGeneric;
 import com.pitang.event.RecursoCriadoEvent;
 import com.pitang.exceptionhandler.CustomExceptionHandler;
 import com.pitang.model.Car;
+import com.pitang.model.dto.CarDTO;
 import com.pitang.repository.CarRepository;
 import com.pitang.service.CarService;
 import com.pitang.service.exception.CarWithLicensePlateDuplicated;
@@ -46,19 +48,21 @@ public class CarController {
 	private final CarService carService;
 	private final MessageSource messageSource;
 	private final ApplicationEventPublisher publisher;
+	private final ModelMapper carMapper;
 
 	@Autowired
 	public CarController(CarRepository carRepository, CarService carService, MessageSource messageSource,
-			ApplicationEventPublisher publisher) {
+			ApplicationEventPublisher publisher, ModelMapper carMapper) {
 		this.carRepository = carRepository;
 		this.carService = carService;
 		this.messageSource = messageSource;
 		this.publisher = publisher;
+		this.carMapper = carMapper;
 	}
 
 	@GetMapping
-	public Page<Car> getAll(Pageable pageable) {
-		return carRepository.findAll(pageable);
+	public Page<CarDTO> getAll(Pageable pageable) {
+		return carRepository.findAll(pageable).map(car -> carMapper.map(car, CarDTO.class));
 	}
 
 	@GetMapping(params = "model")
