@@ -14,7 +14,7 @@ import java.util.TimeZone;
 @EnableConfigurationProperties(DesafioApiProperty.class)
 public class DesafioPitangApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) {    	
         SpringApplication.run(DesafioPitangApplication.class, args);
     }
 
