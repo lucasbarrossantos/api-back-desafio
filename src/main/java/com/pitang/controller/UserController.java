@@ -80,6 +80,12 @@ public class UserController extends ErrorsGeneric {
 		}
 		return ResponseEntity.ok(userService.update(id, user));
 	}
+	
+	@PutMapping("/{userId}/disassociate-car/{carId}")
+	@ResponseStatus(HttpStatus.OK)
+	public void disassociateCar(@PathVariable("userId") UUID userId, @PathVariable("carId") UUID carId) {
+		userService.disassociateCar(userId, carId);
+	}
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)

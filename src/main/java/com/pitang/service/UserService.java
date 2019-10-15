@@ -2,7 +2,9 @@ package com.pitang.service;
 
 import com.pitang.model.Car;
 import com.pitang.model.User;
+import com.pitang.repository.CarRepository;
 import com.pitang.repository.UserRepository;
+import com.pitang.service.exception.CarWithLicensePlateDuplicated;
 import com.pitang.service.exception.EmailDuplicateException;
 import com.pitang.service.exception.LoginDuplicateException;
 import org.springframework.beans.BeanUtils;
@@ -11,6 +13,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,12 +22,12 @@ import java.util.UUID;
 public class UserService {
 
 	private final UserRepository userRepository;
-	private final CarService carService;
+	private final CarRepository carRepository;
 
 	@Autowired
-	public UserService(UserRepository userRepository, CarService carService) {
+	public UserService(UserRepository userRepository, CarRepository carRepository) {
 		this.userRepository = userRepository;
-		this.carService = carService;
+		this.carRepository = carRepository;
 	}
 
 	@Transactional
@@ -32,6 +35,7 @@ public class UserService {
 		validateEmailDuplicate(user);
 		validateLoginDuplicate(user);
 		List<Car> cars = user.getCars();
+		user.setCars(new ArrayList<>());
 		user = userRepository.save(user);
 		saveListCars(user, cars);
 		return user;
@@ -63,7 +67,7 @@ public class UserService {
 
 		// Validação para novo usuário
 		if (user.getId() == null) {
-			if(userRepository.findByLogin(user.getLogin()).isPresent())
+			if (userRepository.findByLogin(user.getLogin()).isPresent())
 				throw new LoginDuplicateException();
 		}
 
@@ -81,18 +85,22 @@ public class UserService {
 	}
 
 	private void saveListCars(User user, List<Car> cars) {
-		if (cars != null)
-			cars.forEach(car -> {
-				car.setUser(user);
-				carService.save(car);
-			});
+		if (cars != null) {
+			for (Car car : cars) {
+				if (car.getId() == null) {
+					validatePlate(car);
+					car.setUser(user);
+					carRepository.saveAndFlush(car);
+				}
+			}
+		}
 	}
 
 	@Transactional
 	public User update(UUID id, User user) {
 		Optional<User> userSaved = findById(id);
 		if (userSaved.isPresent()) {
-			BeanUtils.copyProperties(user, userSaved.get(), "id", "cars");
+			BeanUtils.copyProperties(user, userSaved.get(), "id");
 			return this.save(userSaved.get());
 		} else
 			return null;
@@ -118,4 +126,27 @@ public class UserService {
 		userSaved.ifPresent(user -> user.getCars().forEach(car -> car.setUser(null)));
 		userRepository.deleteById(id);
 	}
+
+	public void disassociateCar(UUID userId, UUID carId) {
+		Optional<Car> car = carRepository.findByUserIdAndId(userId, carId);
+
+		if (car.isPresent()) {
+			car.get().setUser(null);
+			carRepository.save(car.get());
+		}
+	}
+
+	private void validatePlate(Car car) {
+		Car carWithLicensePlateDuplicated = carRepository.findByLicensePlate(car.getLicensePlate());
+
+		/*
+		 ****
+		 * Se a placa estiver em uso, então é lançada uma exceção que será tratada por
+		 * CustomExceptionHandler
+		 */
+		if (carWithLicensePlateDuplicated != null && carWithLicensePlateDuplicated.getId() != car.getId()) {
+			throw new CarWithLicensePlateDuplicated();
+		}
+	}
+
 }

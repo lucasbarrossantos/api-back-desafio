@@ -1,6 +1,8 @@
 package com.pitang.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
 import javax.validation.constraints.Min;
@@ -11,6 +13,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "car")
+@JsonIdentityInfo(
+		  generator = ObjectIdGenerators.PropertyGenerator.class, 
+		  property = "id")
 public class Car {
 
     @Column( columnDefinition = "uuid" )
@@ -27,7 +32,6 @@ public class Car {
     private String model;
     @NotEmpty
     private String color;
-    @JsonIgnore
     @ManyToOne
     private User user;
 

@@ -1,6 +1,10 @@
 package com.pitang.model;
 
+import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
@@ -12,6 +16,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "user")
+@DynamicUpdate
+@JsonIdentityInfo(
+		  generator = ObjectIdGenerators.PropertyGenerator.class, 
+		  property = "id")
 public class User {
 
     @Column( columnDefinition = "uuid")
@@ -33,7 +41,7 @@ public class User {
     private String password;
     @NotBlank
     private String phone;
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.MERGE)
     private List<Car> cars;
 
     public User() {}
