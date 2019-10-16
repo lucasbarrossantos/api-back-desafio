@@ -40,6 +40,7 @@ import com.pitang.repository.CarRepository;
 import com.pitang.service.CarService;
 import com.pitang.service.exception.CarWithLicensePlateDuplicated;
 
+
 @RestController
 @RequestMapping("/cars")
 public class CarController {
@@ -59,7 +60,7 @@ public class CarController {
 		this.publisher = publisher;
 		this.carMapper = carMapper;
 	}
-
+	
 	@GetMapping
 	public Page<CarDTO> getAll(Pageable pageable) {
 		return carRepository.findAll(pageable).map(car -> carMapper.map(car, CarDTO.class));
