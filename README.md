@@ -15,6 +15,7 @@
 * Como usuário preciso pesquisar um usuário
 * Como usuário preciso excluir um usuário
 * Como usuário preciso alterar os dados de um usuário
+* Como usuário preciso incluir novos carros no alterar do usuário
 
 ### Builde 
 
